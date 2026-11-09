@@ -177,53 +177,27 @@
   <!-- ================= 主工作區 ================= -->
   <div class="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
 
-    <div class="w-full lg:flex-1 flex flex-col relative shrink-0 z-10 border-b border-[#1e2d4a] lg:border-b-0 shadow-lg lg:shadow-none bg-[#050a12]">
+    <!-- 【左側 / 中央】SVG 畫布與數據圖表 -->
+    <div class="w-full lg:flex-1 h-[480px] sm:h-[550px] lg:h-full flex flex-col bg-[#050a12] relative overflow-hidden shrink-0">
       
-      <!-- SVG 心血管拓撲圖 (手機端放大高度約為 58vh，呈現寬闊視角) -->
-      <div id="svg-container" class="relative w-full h-[58vh] min-h-[400px] lg:h-full flex justify-center items-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900/40 via-[#070b14] to-[#070b14] overflow-hidden pan-viewport">
+      <!-- SVG 心血管拓撲圖 -->
+      <div id="svg-container" class="relative flex-1 flex justify-center items-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900/60 via-[#050a12] to-[#050a12] overflow-hidden pan-viewport">
         
-        <!-- 手機端操作提示 -->
-        <div class="absolute top-2 right-2 bg-black/50 border border-slate-700/50 text-slate-300 text-[10px] px-2 py-1 rounded lg:hidden pointer-events-none z-20 backdrop-blur-sm">
-          <i class="fa-solid fa-hand-pointer mr-1"></i>雙指縮放
-        </div>
-
-        <!-- 左下角：精緻縮放控制桿 (取代原本的版本) -->
-        <div class="absolute bottom-3 left-3 z-20 flex items-center gap-2 bg-[#0b1322]/85 border border-[#1e2d4a] px-2.5 py-2 rounded-lg backdrop-blur-md shadow-xl text-xs">
-          <button id="btn-zoom-in" class="hover:bg-cyan-900/30 text-cyan-400 rounded transition p-1"><i class="fa-solid fa-magnifying-glass-plus text-[15px]"></i></button>
-          <button id="btn-zoom-out" class="hover:bg-cyan-900/30 text-cyan-400 rounded transition p-1"><i class="fa-solid fa-magnifying-glass-minus text-[15px]"></i></button>
-          <div class="h-5 w-[1px] bg-slate-700/80 mx-1"></div>
-          <button id="btn-zoom-reset" class="hover:text-white text-slate-300 transition flex items-center gap-1.5 text-[11px] font-semibold px-1">
-            <i class="fa-solid fa-rotate"></i> 重設
+        <!-- 縮放控制桿 (左下角) -->
+        <div class="absolute bottom-3 left-3 z-20 flex items-center gap-1 bg-slate-900/90 border border-slate-700/80 p-1.5 rounded-lg backdrop-blur-md shadow-xl text-xs">
+          <button id="btn-zoom-in" title="放大 (+)" class="p-1.5 lg:p-2 hover:bg-slate-800 text-cyan-400 rounded transition flex items-center">
+            <i class="fa-solid fa-magnifying-glass-plus text-sm"></i>
           </button>
-          <span id="zoom-level-badge" class="px-2 py-0.5 bg-cyan-950/80 border border-cyan-800 text-cyan-300 rounded font-mono font-bold text-[10px] ml-1">100%</span>
-        </div>
-
-        <!-- 右下角：高質感即態數據面板 (統一在手機與桌機懸浮顯示，刪除原本的 hidden lg:flex 限制) -->
-        <div class="absolute bottom-3 right-3 z-20 w-[170px] sm:w-[220px] bg-[#0b1322]/85 border border-[#1e2d4a] rounded-xl p-3 shadow-2xl backdrop-blur-md flex flex-col justify-between">
-          <div class="text-[11px] sm:text-xs font-bold text-slate-200 border-b border-slate-700 pb-1.5 mb-2 flex items-center gap-1.5">
-            <div class="bg-cyan-900/50 p-1 rounded text-cyan-400 leading-none">
-              <i class="fa-solid fa-gauge-high"></i>
-            </div>
-            即態數據
-          </div>
-          <div class="space-y-1.5 text-[10px] sm:text-[11px]">
-            <div class="flex justify-between items-center border-b border-slate-800/50 pb-1">
-              <span class="text-slate-400">LV-Aorta 壓差:</span>
-              <span id="out-gradient" class="font-bold text-emerald-400 text-[11px] sm:text-xs">2.6 mmHg</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-slate-800/50 pb-1">
-              <span class="text-slate-400">mPAP 肺動脈壓:</span>
-              <span id="out-mpap" class="font-bold text-cyan-400 text-[11px] sm:text-xs">15.0 mmHg</span>
-            </div>
-            <div class="flex justify-between items-center border-b border-slate-800/50 pb-1">
-              <span class="text-slate-400">Portal P 門脈壓:</span>
-              <span id="out-portal" class="font-bold text-indigo-300 text-[11px] sm:text-xs">7.0 mmHg</span>
-            </div>
-            <div class="flex justify-between items-center pt-0.5">
-              <span class="text-slate-400">心輸出量 (CO):</span>
-              <span id="out-co" class="font-bold text-amber-300 text-[11px] sm:text-xs">5.25 L/min</span>
-            </div>
-          </div>
+          <button id="btn-zoom-out" title="縮小 (-)" class="p-1.5 lg:p-2 hover:bg-slate-800 text-cyan-400 rounded transition flex items-center">
+            <i class="fa-solid fa-magnifying-glass-minus text-sm"></i>
+          </button>
+          <div class="h-4 w-[1px] bg-slate-700 mx-0.5"></div>
+          <button id="btn-zoom-reset" title="重設視角" class="px-2 py-1 hover:bg-slate-800 text-slate-300 rounded transition flex items-center gap-1 text-[11px]">
+            <i class="fa-solid fa-rotate text-[10px]"></i> 重設
+          </button>
+          <span id="zoom-level-badge" class="px-1.5 py-0.5 bg-cyan-950 border border-cyan-800 text-cyan-300 rounded font-mono font-bold text-[10px]">
+            100%
+          </span>
         </div>
 
         <!-- 即時臨床病理警示橫幅 -->
@@ -610,7 +584,28 @@
           <span id="quiz-score" class="bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded text-xs">得分: 0</span>
         </div>
 
-        <div class="bg-[#131e32] border border-[#1e2d4a] rounded-lg p-4">
+        <div id="quiz-setup" class="bg-[#131e32] border border-[#1e2d4a] rounded-lg p-4">
+          <label for="question-count" class="block text-xs font-bold text-slate-300 mb-2">
+            選擇本次測驗題數
+          </label>
+
+          <select id="question-count" class="w-full rounded-lg bg-[#0b1322] border border-[#1e2d4a] px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition">
+            <option value="5">5 題</option>
+            <option value="10">10 題</option>
+            <option value="15">15 題</option>
+          </select>
+
+          <button
+            type="button"
+            onclick="startQuiz()"
+            class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-xs">
+            開始測驗
+          </button>
+
+          <p id="quiz-available-count" class="text-xs text-slate-400 mt-2"></p>
+        </div>
+
+        <div id="quiz-case-card" class="bg-[#131e32] border border-[#1e2d4a] rounded-lg p-4 hidden">
           <div class="flex justify-between items-center mb-2">
             <span id="case-badge" class="px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-800 rounded text-[10px] font-bold">案例 載入中...</span>
             <span class="text-slate-500 text-[10px]">臨床評估挑戰題</span>
@@ -624,12 +619,12 @@
           </div>
         </div>
 
-        <div class="space-y-3">
+        <div id="quiz-question-area" class="space-y-3 hidden">
           <label class="text-xs font-bold text-slate-300 block">問題：該病患最可能的流體力學病灶為何？</label>
           <div id="quiz-options" class="space-y-2"></div>
         </div>
 
-        <button id="btn-submit-quiz" onclick="checkAnswer()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-xs shadow-lg transition">
+        <button id="btn-submit-quiz" onclick="checkAnswer()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-xs shadow-lg transition hidden">
           提交臨床診斷答覆
         </button>
 
@@ -741,6 +736,7 @@
 
     /* Google Sheet 題庫串接 */
     let cases = [];
+    let questionPool = [];
     const QUESTION_API_URL = "https://script.google.com/macros/s/AKfycbxTUkNHlrSBvbrVG9z3Nk8rppSZPhgMAT3dZ9SqOI17Y_dXusdM_CUZMI9J6ETmE6tq/exec";
 
     function loadCasesFromSheet() {
@@ -771,7 +767,7 @@
             return;
           }
 
-          cases = sheetQuestions.map((q, index) => ({
+          questionPool = sheetQuestions.map((q, index) => ({
             id: q.id || index + 1,
             title: q.title || "",
             desc: q.desc || "",
@@ -784,7 +780,7 @@
             rationale: q.rationale || ""
           }));
 
-          resolve(cases);
+          resolve(questionPool);
         };
 
         script.onerror = function () {
@@ -795,6 +791,44 @@
         script.src = url.toString();
         document.head.appendChild(script);
       });
+    }
+
+    function shuffleQuestions(list) {
+      const shuffled = [...list];
+
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      return shuffled;
+    }
+
+    function startQuiz() {
+      const requestedCount = Number(
+        document.getElementById('question-count').value
+      );
+
+      if (questionPool.length < requestedCount) {
+        alert(
+          `目前只有 ${questionPool.length} 題啟用，無法進行 ${requestedCount} 題測驗。`
+        );
+        return;
+      }
+
+      // 從完整啟用題庫中隨機抽出所選題數
+      cases = shuffleQuestions(questionPool).slice(0, requestedCount);
+
+      state.currentCase = 0;
+      state.score = 0;
+      document.getElementById('quiz-score').textContent = `答對: 0/${cases.length}`;
+
+      document.getElementById('quiz-setup').classList.add('hidden');
+      document.getElementById('quiz-case-card').classList.remove('hidden');
+      document.getElementById('quiz-question-area').classList.remove('hidden');
+      document.getElementById('btn-submit-quiz').classList.remove('hidden');
+
+      renderQuizCase();
     }
 
     /* 初始化 */
@@ -817,12 +851,11 @@
       try {
         await loadCasesFromSheet();
 
-        if (cases.length === 0) {
-          throw new Error("Sheet 中沒有啟用中的題目");
+        if (questionPool.length === 0) {
+          throw new Error("目前沒有啟用中的題目");
         }
 
-        state.currentCase = 0;
-        renderQuizCase();
+        document.getElementById('quiz-available-count').textContent =`目前有 ${questionPool.length} 題啟用中`;
       } catch (error) {
         console.error("題庫載入失敗：", error);
         document.getElementById("case-title").textContent = "題庫載入失敗";
@@ -1143,8 +1176,8 @@
       const rationaleBox = document.getElementById('quiz-rationale');
 
       if (selectedOpt && selectedOpt.correct) {
-        state.score += 50;
-        document.getElementById('quiz-score').textContent = `得分: ${state.score}`;
+        state.score += 1;
+        document.getElementById('quiz-score').textContent = `答對: ${state.score}/${cases.length}`;
         rationaleBox.className = "bg-emerald-950/60 border border-emerald-500/40 rounded-lg p-3 text-xs leading-relaxed text-emerald-200 block";
         rationaleBox.innerHTML = `✅ <b>答對了！</b><br>${c.rationale}`;
       } else {
@@ -1158,7 +1191,8 @@
         document.getElementById('btn-next-case').classList.remove('hidden');
       } else {
         document.getElementById('quiz-options').parentElement.classList.add('hidden');
-        document.getElementById('final-score-text').textContent = `本次挑戰總得分：${state.score} 分`;
+        const finalScore = Math.round(state.score * 100 / cases.length);
+        document.getElementById('final-score-text').textContent =`答對 ${state.score}/${cases.length} 題，得分：${finalScore} 分`;
         document.getElementById('quiz-complete-card').classList.remove('hidden');
       }
     }
@@ -1173,8 +1207,14 @@
     function restartQuiz() {
       state.currentCase = 0;
       state.score = 0;
-      document.getElementById('quiz-score').textContent = `得分: 0`;
-      renderQuizCase();
+
+      document.getElementById('quiz-score').textContent = '答對: 0';
+      document.getElementById('quiz-setup').classList.remove('hidden');
+      document.getElementById('quiz-case-card').classList.add('hidden');
+      document.getElementById('quiz-question-area').classList.add('hidden');
+      document.getElementById('btn-submit-quiz').classList.add('hidden');
+      document.getElementById('btn-next-case').classList.add('hidden');
+      document.getElementById('quiz-complete-card').classList.add('hidden');
     }
   </script>
 </body>
