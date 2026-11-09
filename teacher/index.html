@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CardioFlow Pro - 臨床病例出題與題庫管理後台</title>
+
+  <!-- Tailwind CSS 框架 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示庫 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-main: #050a12;
+      --panel-bg: #0b1322;
+      --card-bg: #131e32;
+      --border-color: #1e2d4a;
+      --accent-cyan: #38bdf8;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-emerald: #10b981;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-main); }
+    ::-webkit-scrollbar-thumb { background: #1e2d4a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+
+    .modal-backdrop {
+      background-color: rgba(5, 10, 18, 0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Custom form inputs */
+    .form-input {
+      background-color: #0b1322;
+      border: 1px solid #1e2d4a;
+      color: #f1f5f9;
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .badge-tag {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ================= HEADER Navigation ================= -->
+  <header class="bg-[#0b1322] border-b border-[#1e2d4a] sticky top-0 z-30 px-6 py-3.5 flex flex-wrap justify-between items-center gap-4 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="p-2.5 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+        <i class="fa-solid fa-file-pen text-cyan-400 text-xl"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-bold tracking-wide bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+            CardioFlow Pro
+          </h1>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">Quiz Creator Hub v26w45.4</span>
+        </div>
+        <p class="text-xs text-slate-400">臨床醫學模擬題庫建置與血流動力學參數設定後台</p>
+      </div>
+    </div>
+
+    <!-- Navigation Actions -->
+    <div class="flex items-center gap-3">
+      <button onclick="openModal()" class="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-medium text-xs rounded-lg shadow-lg flex items-center gap-2 transition">
+        <i class="fa-solid fa-plus text-sm"></i> 新增臨床病例
+      </button>
+
+      <div class="h-6 w-[1px] bg-slate-800 mx-1"></div>
+
+      <button onclick="exportJSON()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs rounded-lg flex items-center gap-1.5 transition" title="導出 JSON 題庫檔案">
+        <i class="fa-solid fa-download text-cyan-400"></i> 匯出 JSON
+      </button>
+      
+      <button onclick="copyJSON()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs rounded-lg flex items-center gap-1.5 transition" title="複製 JSON 字串">
+        <i class="fa-solid fa-copy text-amber-400"></i> 複製代碼
+      </button>
+
+      <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs rounded-lg cursor-pointer flex items-center gap-1.5 transition" title="匯入 JSON 題庫檔">
+        <i class="fa-solid fa-upload text-emerald-400"></i> 匯入 JSON
+        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event)">
+      </label>
+
+      <button onclick="resetToDefaultData()" class="p-2 text-slate-400 hover:text-rose-400 bg-slate-900 border border-slate-800 hover:border-rose-900 rounded-lg text-xs transition" title="重置為預設題庫範例">
+        <i class="fa-solid fa-rotate-left"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+    <!-- KPI Statistics Section -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-[#0b1322] border border-[#1e2d4a] p-4 rounded-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-medium text-slate-400">題庫總案例數</div>
+          <div id="stat-total" class="text-2xl font-bold text-slate-100 mt-1">0</div>
+        </div>
+        <div class="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg">
+          <i class="fa-solid fa-folder-open text-xl"></i>
+        </div>
+      </div>
+
+      <div class="bg-[#0b1322] border border-[#1e2d4a] p-4 rounded-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-medium text-slate-400">瓣膜疾病題數</div>
+          <div id="stat-valve" class="text-2xl font-bold text-amber-400 mt-1">0</div>
+        </div>
+        <div class="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg">
+          <i class="fa-solid fa-heart-pulse text-xl"></i>
+        </div>
+      </div>
+
+      <div class="bg-[#0b1322] border border-[#1e2d4a] p-4 rounded-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-medium text-slate-400">肺高壓 / COPD 題數</div>
+          <div id="stat-pulm" class="text-2xl font-bold text-sky-400 mt-1">0</div>
+        </div>
+        <div class="p-3 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-lg">
+          <i class="fa-solid fa-lungs text-xl"></i>
+        </div>
+      </div>
+
+      <div class="bg-[#0b1322] border border-[#1e2d4a] p-4 rounded-xl flex items-center justify-between">
+        <div>
+          <div class="text-xs font-medium text-slate-400">門脈高壓 / 肝病變題數</div>
+          <div id="stat-portal" class="text-2xl font-bold text-emerald-400 mt-1">0</div>
+        </div>
+        <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg">
+          <i class="fa-solid fa-stethoscope text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar & Search -->
+    <div class="bg-[#0b1322] border border-[#1e2d4a] p-4 rounded-xl flex flex-wrap gap-4 items-center justify-between shadow-md">
+      <!-- Search -->
+      <div class="relative flex-1 min-w-[240px]">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+        <input type="text" id="search-input" oninput="renderQuestions()" placeholder="搜尋關鍵字（病例標題、敘述、解析）..." class="form-input pl-9 w-full text-xs">
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-400 font-medium mr-1"><i class="fa-solid fa-filter text-cyan-400 mr-1"></i> 分類篩選:</span>
+        <button onclick="setFilterCategory('all')" id="filter-all" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 text-white">全部選項</button>
+        <button onclick="setFilterCategory('心臟瓣膜病變')" id="filter-valve" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#131e32] text-slate-300 hover:bg-slate-800">心臟瓣膜病變</button>
+        <button onclick="setFilterCategory('肺高壓/COPD')" id="filter-pulm" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#131e32] text-slate-300 hover:bg-slate-800">肺高壓/COPD</button>
+        <button onclick="setFilterCategory('肝門脈高壓')" id="filter-portal" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#131e32] text-slate-300 hover:bg-slate-800">肝門脈高壓</button>
+        <button onclick="setFilterCategory('綜合性病理')" id="filter-complex" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#131e32] text-slate-300 hover:bg-slate-800">綜合性病理</button>
+      </div>
+    </div>
+
+    <!-- Question Cards Grid -->
+    <div id="questions-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <!-- Empty State Container -->
+    <div id="empty-state" class="hidden text-center py-16 bg-[#0b1322] border border-dashed border-[#1e2d4a] rounded-2xl">
+      <i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i>
+      <h3 class="text-base font-bold text-slate-300">目前沒有符合條件的病例題目</h3>
+      <p class="text-xs text-slate-500 mt-1">請嘗試變更搜尋關鍵字，或點擊右上角新增病例。</p>
+      <button onclick="openModal()" class="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition">
+        <i class="fa-solid fa-plus mr-1"></i> 新增第一題病例
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ================= MODAL: CREATE / EDIT QUESTION ================= -->
+  <div id="question-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
+    <div class="bg-[#0b1322] border border-[#1e2d4a] w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-[#1e2d4a] bg-[#131e32] flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <i id="modal-icon" class="fa-solid fa-file-circle-plus text-cyan-400 text-lg"></i>
+          <h2 id="modal-title" class="text-base font-bold text-slate-100">新增臨床病例題目</h2>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-lg px-2 rounded-lg transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Split: Editor Form & Live Preview) -->
+      <div class="p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
+        
+        <!-- Left Column: Form Controls -->
+        <form id="question-form" onsubmit="saveQuestion(event)" class="space-y-4">
+          <input type="hidden" id="edit-index" value="-1">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">病例標題 (Title) <span class="text-rose-400">*</span></label>
+            <input type="text" id="form-title" required placeholder="例如: 68歲男性，運動時突發勞力性昏厥" oninput="updateLivePreview()" class="form-input w-full">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">病理分類 (Category)</label>
+              <select id="form-category" onchange="updateLivePreview()" class="form-input w-full">
+                <option value="心臟瓣膜病變">心臟瓣膜病變</option>
+                <option value="肺高壓/COPD">肺高壓/COPD</option>
+                <option value="肝門脈高壓">肝門脈高壓</option>
+                <option value="綜合性病理">綜合性病理</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">題目難易度 (Difficulty)</label>
+              <select id="form-difficulty" onchange="updateLivePreview()" class="form-input w-full">
+                <option value="初級 (Basic)">初級 (Basic)</option>
+                <option value="中級 (Intermediate)" selected>中級 (Intermediate)</option>
+                <option value="進階 (Advanced)">進階 (Advanced)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="form-enabled"
+              checked
+              class="accent-emerald-500">
+            <label for="form-enabled" class="text-xs font-semibold text-slate-300">
+              啟用此題，讓學生前台可以讀取
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">病例病史與臨床呈現 (Clinical History) <span class="text-rose-400">*</span></label>
+            <textarea id="form-desc" rows="3" required placeholder="輸入病患主訴、理學檢查結果與聽診發現..." oninput="updateLivePreview()" class="form-input w-full leading-relaxed"></textarea>
+          </div>
+
+          <!-- Physiological Parameters section -->
+          <div class="p-3 bg-[#131e32] border border-[#1e2d4a] rounded-xl space-y-2">
+            <div class="text-xs font-bold text-cyan-400 flex items-center justify-between">
+              <span><i class="fa-solid fa-sliders mr-1"></i> 生理動態模擬預設參數 (CardioFlow Pro)</span>
+              <span class="text-[10px] text-slate-400 font-normal">載入此題時寫入模擬器</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span class="text-slate-400 text-[11px]">AVA 主動脈瓣面積 (cm²):</span>
+                <input type="number" id="form-ava" step="0.1" min="0.5" max="4.0" value="3.5" oninput="updateLivePreview()" class="form-input w-full py-1 text-xs">
+              </div>
+              <div>
+                <span class="text-slate-400 text-[11px]">PVR 肺血管阻力 (Wood U):</span>
+                <input type="number" id="form-pvr" step="0.1" min="1.0" max="10.0" value="2.0" oninput="updateLivePreview()" class="form-input w-full py-1 text-xs">
+              </div>
+              <div>
+                <span class="text-slate-400 text-[11px]">Portal Res 門脈阻抗比:</span>
+                <input type="number" id="form-portal" step="0.1" min="1.0" max="8.0" value="1.0" oninput="updateLivePreview()" class="form-input w-full py-1 text-xs">
+              </div>
+              <div>
+                <span class="text-slate-400 text-[11px]">HR 心律 (bpm):</span>
+                <input type="number" id="form-hr" step="1" min="40" max="180" value="75" oninput="updateLivePreview()" class="form-input w-full py-1 text-xs">
+              </div>
+            </div>
+          </div>
+
+          <!-- Options -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-slate-300">選擇題選項與正確解答 (Options & Key) <span class="text-rose-400">*</span></label>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="correct-key" value="0" checked onchange="updateLivePreview()" class="accent-cyan-400">
+                <span class="text-xs font-bold text-slate-400 w-4">A</span>
+                <input type="text" id="opt-0" required placeholder="選項 A 內容" oninput="updateLivePreview()" class="form-input flex-1 py-1 text-xs">
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="radio" name="correct-key" value="1" onchange="updateLivePreview()" class="accent-cyan-400">
+                <span class="text-xs font-bold text-slate-400 w-4">B</span>
+                <input type="text" id="opt-1" required placeholder="選項 B 內容" oninput="updateLivePreview()" class="form-input flex-1 py-1 text-xs">
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="radio" name="correct-key" value="2" onchange="updateLivePreview()" class="accent-cyan-400">
+                <span class="text-xs font-bold text-slate-400 w-4">C</span>
+                <input type="text" id="opt-2" required placeholder="選項 C 內容" oninput="updateLivePreview()" class="form-input flex-1 py-1 text-xs">
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="radio" name="correct-key" value="3" onchange="updateLivePreview()" class="accent-cyan-400">
+                <span class="text-xs font-bold text-slate-400 w-4">D</span>
+                <input type="text" id="opt-3" required placeholder="選項 D 內容" oninput="updateLivePreview()" class="form-input flex-1 py-1 text-xs">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">臨床推導解析 (Rationale) <span class="text-rose-400">*</span></label>
+            <textarea id="form-rationale" rows="3" required placeholder="詳細解釋生理水力學機轉與診斷依據..." oninput="updateLivePreview()" class="form-input w-full leading-relaxed text-xs"></textarea>
+          </div>
+
+          <button type="submit" class="hidden" id="real-submit-btn"></button>
+        </form>
+
+        <!-- Right Column: Live Card Preview -->
+        <div class="flex flex-col h-full bg-[#050a12] border border-[#1e2d4a] rounded-xl p-4">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+            <span><i class="fa-solid fa-eye text-cyan-400 mr-1"></i> 即時卡片預覽 (Preview)</span>
+            <span class="text-[10px] text-slate-500">學生介面顯示樣式</span>
+          </div>
+
+          <div id="preview-card-container" class="flex-1 bg-[#131e32] border border-[#1e2d4a] rounded-xl p-4 space-y-3 flex flex-col justify-between">
+            <!-- Dynamic Preview Content rendered here -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 border-t border-[#1e2d4a] bg-[#131e32] flex justify-end items-center gap-3">
+        <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition">
+          取消
+        </button>
+        <button type="button"
+          onclick="document.getElementById('question-form').requestSubmit()"
+          class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg transition">
+          <i class="fa-solid fa-floppy-disk mr-1"></i> 儲存病例題目
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: STUDENT TEST DRIVE / PREVIEW ================= -->
+  <div id="test-modal" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
+    <div class="bg-[#0b1322] border border-[#1e2d4a] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div class="px-6 py-4 border-b border-[#1e2d4a] bg-[#131e32] flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-circle-play text-amber-400"></i>
+          <h2 class="text-base font-bold text-slate-100">學生試答測驗模式 (Student Mode)</h2>
+        </div>
+        <button onclick="closeTestModal()" class="text-slate-400 hover:text-white text-lg px-2 rounded-lg transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="test-modal-body" class="p-6 space-y-4">
+        <!-- Dynamic student view -->
+      </div>
+
+      <div class="px-6 py-3.5 border-t border-[#1e2d4a] bg-[#131e32] flex justify-between items-center">
+        <span class="text-xs text-slate-400">模擬 CardioFlow Pro 測驗作答畫面</span>
+        <button onclick="closeTestModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg">
+          關閉試答
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-cyan-950 border border-cyan-500 text-cyan-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+    <i class="fa-solid fa-circle-check text-cyan-400 text-base"></i>
+    <span id="toast-msg">操作成功</span>
+  </div>
+
+  <script>
+    /* Default Preset Questions Bank */
+    const defaultQuestions = [
+      {
+        id: 1,
+        title: "68歲男性，運動時突發勞力性昏厥",
+        category: "心臟瓣膜病變",
+        difficulty: "中級 (Intermediate)",
+        desc: "患者主訴近三個月來於爬樓梯時經常感到胸悶、心悸，今日於運動場跑步時發生短暫昏厥。聽診於胸骨右緣第二肋間聞及粗糙 Crescendo-Decrescendo 收縮期噴射性雜音，並傳導至頸動脈。",
+        params: { ava: 0.8, pvr: 2.0, portalRes: 1.0, hr: 85 },
+        options: [
+          "原發性肺動脈高壓致右心室衰竭",
+          "重度主動脈瓣狹窄 (Critical Aortic Stenosis)",
+          "肝硬化致門靜脈高壓症",
+          "二尖瓣脫垂致急性肺水腫"
+        ],
+        correctIndex: 1,
+        rationale: "<b>診斷解析：</b>病患為重度主動脈瓣狹窄 (AVA < 1.0 cm²)。收縮期左心室需產生巨大跨瓣壓差（Mean Gradient > 40 mmHg）。運動時周邊血管擴張，但心輸出量 (CO) 固定無法相應增加，導致腦部低灌流發作昏厥。"
+      },
+      {
+        id: 2,
+        title: "52歲女性，慢性咳嗽伴隨端坐呼吸與下肢水腫",
+        category: "肺高壓/COPD",
+        difficulty: "中級 (Intermediate)",
+        desc: "患者罹患長期 COPD 肺氣腫，近期出現嚴重呼吸困難、頸靜脈怒張 (JVD)、肝脾鬱血腫大與雙下肢凹陷性水腫。",
+        params: { ava: 3.5, pvr: 6.5, portalRes: 1.2, hr: 95 },
+        options: [
+          "慢性阻塞性肺病引發肺心症 (Cor Pulmonale)",
+          "原發性左心室心肌病變",
+          "單純性門脈高壓症",
+          "主動脈瓣閉鎖不全"
+        ],
+        correctIndex: 0,
+        rationale: "<b>診斷解析：</b>COPD 導致肺實質微血管網破壞與缺氧性血管收縮，使肺血管阻力 (PVR ↑↑) 激增。右心室後負荷過重導致右心室肥厚，最終引發三尖瓣逆流與體靜脈鬱血（JVD、下肢水腫）。"
+      },
+      {
+        id: 3,
+        title: "45歲男性，食道靜脈曲張出血與脾腫大",
+        category: "肝門脈高壓",
+        difficulty: "進階 (Advanced)",
+        desc: "病患有 B 型肝炎慢性病史，因嘔血急診入院。超音波顯示肝臟表面結節狀凹凸不平，脾臟腫大 (Splenomegaly)，門靜脈血流速度減緩。",
+        params: { ava: 3.5, pvr: 2.0, portalRes: 4.5, hr: 82 },
+        options: [
+          "急性二尖瓣狹窄",
+          "肝硬化引發門靜脈高壓 (Portal Hypertension)",
+          "主動脈瓣狹窄併腦缺血",
+          "慢性肺原性心臟病"
+        ],
+        correctIndex: 1,
+        rationale: "<b>診斷解析：</b>肝硬化導致肝竇狀隙纖維化，大幅增加門脈水力阻抗 (R ↑↑)。門靜脈壓力提升 (>12 mmHg) 引發逆流充血，致脾腫大與食道側支循環靜脈曲張破裂出血。"
+      }
+    ];
+
+    let questions = [];
+    let currentFilterCategory = 'all';
+
+    // Initialize Page
+    window.addEventListener('DOMContentLoaded', () => {
+      showToast('正在從 Google Sheet 載入題庫...');
+
+      google.script.run
+        .withSuccessHandler(cloudQuestions => {
+          console.log('[Sheet] 回傳題數：', cloudQuestions?.length, cloudQuestions);
+          if (Array.isArray(cloudQuestions) && cloudQuestions.length > 0) {
+            questions = cloudQuestions;
+            localStorage.setItem(
+              'cardioflow_quiz_bank',
+              JSON.stringify(questions)
+            );
+            showToast('已載入 Google Sheet 題庫');
+          } else {
+            loadQuestions();
+            showToast('Sheet 沒有題目，已載入本機題庫');
+          }
+
+          renderQuestions();
+          updateStats();
+        })
+        .withFailureHandler(error => {
+          console.error('讀取 Sheet 失敗：', error);
+          loadQuestions();
+          renderQuestions();
+          updateStats();
+          showToast('讀取 Sheet 失敗，已載入本機題庫');
+        })
+        .getQuestionsFromSheet();
+    });
+
+    // Load Data from LocalStorage or Default
+    function loadQuestions() {
+      const stored = localStorage.getItem('cardioflow_quiz_bank');
+
+      if (stored) {
+        try {
+          const savedQuestions = JSON.parse(stored);
+
+          if (Array.isArray(savedQuestions) && savedQuestions.length > 0) {
+            questions = savedQuestions;
+            return;
+          }
+        } catch (error) {
+          console.warn('本機題庫格式錯誤，改用預設題庫：', error);
+        }
+      }
+
+      questions = [...defaultQuestions];
+      saveQuestionsToStorage();
+    }
+
+    function saveQuestionsToStorage() {
+      localStorage.setItem('cardioflow_quiz_bank', JSON.stringify(questions));
+      updateStats();
+    }
+
+    function resetToDefaultData() {
+      if (confirm("確定要重置為預設題庫數據嗎？所有自訂修改將被覆蓋。")) {
+        questions = [...defaultQuestions];
+        saveQuestionsToStorage();
+        renderQuestions();
+        showToast("已重置為預設題庫範例");
+      }
+    }
+
+    // Render Question Cards
+    function renderQuestions() {
+      const grid = document.getElementById('questions-grid');
+      const emptyState = document.getElementById('empty-state');
+      const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+
+      grid.innerHTML = '';
+
+      const filtered = questions.filter(q => {
+        const matchesCategory = (currentFilterCategory === 'all') || (q.category === currentFilterCategory);
+        const matchesSearch = q.title.toLowerCase().includes(searchVal) || 
+                              q.desc.toLowerCase().includes(searchVal) ||
+                              q.rationale.toLowerCase().includes(searchVal);
+        return matchesCategory && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      filtered.forEach((q, index) => {
+        const realIndex = questions.findIndex(orig => orig.id === q.id);
+        const card = document.createElement('div');
+        card.className = "bg-[#0b1322] border border-[#1e2d4a] hover:border-cyan-500/40 rounded-xl p-5 shadow-lg transition-all duration-200 flex flex-col justify-between";
+
+        let categoryBadgeClass = "bg-cyan-950 text-cyan-300 border-cyan-800";
+        if (q.category === '心臟瓣膜病變') categoryBadgeClass = "bg-amber-950 text-amber-300 border-amber-800";
+        if (q.category === '肺高壓/COPD') categoryBadgeClass = "bg-sky-950 text-sky-300 border-sky-800";
+        if (q.category === '肝門脈高壓') categoryBadgeClass = "bg-emerald-950 text-emerald-300 border-emerald-800";
+
+        card.innerHTML = `
+          <div>
+            <!-- Header Row -->
+            <div class="flex justify-between items-start gap-2 mb-3">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="badge-tag border ${categoryBadgeClass}">${q.category}</span>
+                <span class="badge-tag bg-slate-900 border border-slate-700 text-slate-400">${q.difficulty}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  onclick="toggleQuestionEnabled(${realIndex})"
+                  class="px-2 py-1 rounded text-[10px] font-bold ${
+                    q.enabled !== false
+                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                      : 'bg-slate-800 text-slate-300 border border-slate-600'
+                  }"
+                  title="切換題目啟用狀態">
+                  ${q.enabled !== false ? '停用' : '啟用'}
+                </button>
+                <button onclick="testDriveQuestion(${realIndex})" class="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition" title="試答測驗">
+                  <i class="fa-solid fa-play text-xs"></i>
+                </button>
+                <button onclick="editQuestion(${realIndex})" class="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded transition" title="編輯題目">
+                  <i class="fa-solid fa-pen-to-square text-xs"></i>
+                </button>
+                <button onclick="deleteQuestion(${realIndex})" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded transition" title="刪除題目">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Title & Description -->
+            <h3 class="font-bold text-slate-100 text-sm mb-2 leading-snug">${q.title}</h3>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4 line-clamp-3">${q.desc}</p>
+
+            <!-- Physiological Parameters -->
+            <div class="bg-[#131e32] border border-[#1e2d4a] rounded-lg p-2.5 mb-4 grid grid-cols-4 gap-2 text-center text-[11px]">
+              <div>
+                <span class="text-slate-400 block text-[10px]">AVA</span>
+                <span class="font-bold text-amber-400">${q.params.ava} cm²</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">PVR</span>
+                <span class="font-bold text-sky-400">${q.params.pvr} WU</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">Portal</span>
+                <span class="font-bold text-emerald-400">${q.params.portalRes}x</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px]">HR</span>
+                <span class="font-bold text-indigo-300">${q.params.hr} bpm</span>
+              </div>
+            </div>
+
+            <!-- Options Preview -->
+            <div class="space-y-1.5 mb-4">
+              ${q.options.map((opt, i) => `
+                <div class="text-xs p-2 rounded-md border flex items-center gap-2 ${i === q.correctIndex ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 font-medium' : 'bg-[#0b1322] border-slate-800 text-slate-400'}">
+                  <span class="w-4 text-center font-bold text-[10px] ${i === q.correctIndex ? 'text-emerald-400' : 'text-slate-500'}">${String.fromCharCode(65 + i)}</span>
+                  <span class="flex-1 truncate">${opt}</span>
+                  ${i === q.correctIndex ? '<i class="fa-solid fa-check text-emerald-400 text-xs"></i>' : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Rationale snippet -->
+          <div class="pt-3 border-t border-[#1e2d4a] text-[11px] text-slate-400">
+            <span class="text-cyan-400 font-bold">推導解析：</span>
+            <span class="line-clamp-2">${q.rationale.replace(/<[^>]*>?/gm, '')}</span>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    // Update Top Statistics
+    function updateStats() {
+      document.getElementById('stat-total').textContent = questions.length;
+      document.getElementById('stat-valve').textContent = questions.filter(q => q.category === '心臟瓣膜病變').length;
+      document.getElementById('stat-pulm').textContent = questions.filter(q => q.category === '肺高壓/COPD').length;
+      document.getElementById('stat-portal').textContent = questions.filter(q => q.category === '肝門脈高壓').length;
+    }
+
+    // Category Filter Button Control
+    function setFilterCategory(cat) {
+      currentFilterCategory = cat;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-cyan-600', 'text-white');
+        btn.classList.add('bg-[#131e32]', 'text-slate-300');
+      });
+
+      const btnIdMap = {
+        'all': 'filter-all',
+        '心臟瓣膜病變': 'filter-valve',
+        '肺高壓/COPD': 'filter-pulm',
+        '肝門脈高壓': 'filter-portal',
+        '綜合性病理': 'filter-complex'
+      };
+
+      const activeBtn = document.getElementById(btnIdMap[cat]);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-[#131e32]', 'text-slate-300');
+        activeBtn.classList.add('bg-cyan-600', 'text-white');
+      }
+
+      renderQuestions();
+    }
+
+    // Modal Control
+    function openModal(editIndex = -1) {
+      const modal = document.getElementById('question-modal');
+      const form = document.getElementById('question-form');
+      const title = document.getElementById('modal-title');
+      const icon = document.getElementById('modal-icon');
+
+      form.reset();
+      document.getElementById('edit-index').value = editIndex;
+
+      if (editIndex >= 0) {
+        const q = questions[editIndex];
+        title.textContent = "編輯臨床病例題目";
+        icon.className = "fa-solid fa-pen-to-square text-cyan-400 text-lg";
+
+        document.getElementById('form-title').value = q.title;
+        document.getElementById('form-category').value = q.category;
+        document.getElementById('form-difficulty').value = q.difficulty;
+        document.getElementById('form-desc').value = q.desc;
+
+        document.getElementById('form-ava').value = q.params.ava;
+        document.getElementById('form-pvr').value = q.params.pvr;
+        document.getElementById('form-portal').value = q.params.portalRes;
+        document.getElementById('form-hr').value = q.params.hr;
+
+        document.getElementById('opt-0').value = q.options[0] || '';
+        document.getElementById('opt-1').value = q.options[1] || '';
+        document.getElementById('opt-2').value = q.options[2] || '';
+        document.getElementById('opt-3').value = q.options[3] || '';
+
+        const radios = document.getElementsByName('correct-key');
+        if (radios[q.correctIndex]) radios[q.correctIndex].checked = true;
+
+        document.getElementById('form-rationale').value = q.rationale;
+
+        document.getElementById('form-enabled').checked = q.enabled !== false;
+      } else {
+        title.textContent = "新增臨床病例題目";
+        icon.className = "fa-solid fa-file-circle-plus text-cyan-400 text-lg";
+        document.getElementById('form-enabled').checked = true;
+      }
+
+      updateLivePreview();
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('question-modal').classList.add('hidden');
+    }
+
+    // Live Preview Card Updating
+    function updateLivePreview() {
+      const title = document.getElementById('form-title').value || "病例標題預覽";
+      const category = document.getElementById('form-category').value;
+      const difficulty = document.getElementById('form-difficulty').value;
+      const desc = document.getElementById('form-desc').value || "請輸入臨床病例歷史與呈現敘述...";
+
+      const ava = document.getElementById('form-ava').value || 3.5;
+      const pvr = document.getElementById('form-pvr').value || 2.0;
+      const portal = document.getElementById('form-portal').value || 1.0;
+      const hr = document.getElementById('form-hr').value || 75;
+
+      const opts = [
+        document.getElementById('opt-0').value || '選項 A',
+        document.getElementById('opt-1').value || '選項 B',
+        document.getElementById('opt-2').value || '選項 C',
+        document.getElementById('opt-3').value || '選項 D'
+      ];
+
+      const radios = document.getElementsByName('correct-key');
+      let selectedKey = 0;
+      for (let i = 0; i < radios.length; i++) {
+        if (radios[i].checked) { selectedKey = i; break; }
+      }
+
+      const rationale = document.getElementById('form-rationale').value || "請輸入解答推導解析...";
+
+      const previewContainer = document.getElementById('preview-card-container');
+      previewContainer.innerHTML = `
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="badge-tag bg-cyan-950 text-cyan-300 border border-cyan-800">${category}</span>
+            <span class="badge-tag bg-slate-900 border border-slate-700 text-slate-400">${difficulty}</span>
+          </div>
+
+          <h4 class="font-bold text-slate-100 text-sm">${title}</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">${desc}</p>
+
+          <div class="bg-[#0b1322] border border-[#1e2d4a] rounded-lg p-2 grid grid-cols-4 gap-1 text-center text-[10px]">
+            <div><span class="text-slate-500 block">AVA</span><span class="font-bold text-amber-400">${ava} cm²</span></div>
+            <div><span class="text-slate-500 block">PVR</span><span class="font-bold text-sky-400">${pvr} WU</span></div>
+            <div><span class="text-slate-500 block">Portal</span><span class="font-bold text-emerald-400">${portal}x</span></div>
+            <div><span class="text-slate-500 block">HR</span><span class="font-bold text-indigo-300">${hr} bpm</span></div>
+          </div>
+
+          <div class="space-y-1.5">
+            ${opts.map((opt, i) => `
+              <div class="text-xs p-2 rounded border flex items-center gap-2 ${i === selectedKey ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 font-medium' : 'bg-[#0b1322] border-slate-800 text-slate-400'}">
+                <span class="w-4 text-center font-bold text-[10px] ${i === selectedKey ? 'text-emerald-400' : 'text-slate-500'}">${String.fromCharCode(65 + i)}</span>
+                <span class="flex-1 truncate">${opt}</span>
+                ${i === selectedKey ? '<i class="fa-solid fa-check text-emerald-400 text-xs"></i>' : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-[#1e2d4a] text-[11px] text-slate-400">
+          <span class="text-cyan-400 font-bold">推導解析：</span>
+          <span class="line-clamp-3">${rationale}</span>
+        </div>
+      `;
+    }
+
+    // Form Save (Create or Update)
+    // Form Save (Create or Update)
+
+    // 表單儲存（新增或更新單筆題目）
+    function saveQuestion(e) {
+      e.preventDefault();
+      const editIndex = parseInt(document.getElementById('edit-index').value);
+
+      const radios = document.getElementsByName('correct-key');
+      let selectedKey = 0;
+      for (let i = 0; i < radios.length; i++) {
+        if (radios[i].checked) { selectedKey = i; break; }
+      }
+
+      const newQ = {
+        id: editIndex >= 0 ? questions[editIndex].id : Date.now(),
+        title: document.getElementById('form-title').value.trim(),
+        category: document.getElementById('form-category').value,
+        difficulty: document.getElementById('form-difficulty').value,
+        desc: document.getElementById('form-desc').value.trim(),
+        params: {
+          ava: parseFloat(document.getElementById('form-ava').value),
+          pvr: parseFloat(document.getElementById('form-pvr').value),
+          portalRes: parseFloat(document.getElementById('form-portal').value),
+          hr: parseInt(document.getElementById('form-hr').value)
+        },
+        options: [
+          document.getElementById('opt-0').value.trim(),
+          document.getElementById('opt-1').value.trim(),
+          document.getElementById('opt-2').value.trim(),
+          document.getElementById('opt-3').value.trim()
+        ],
+        correctIndex: selectedKey,
+        rationale: document.getElementById('form-rationale').value.trim(),
+        enabled: document.getElementById('form-enabled').checked
+      };
+
+      if (editIndex >= 0) {
+        questions[editIndex] = newQ;
+      } else {
+        questions.unshift(newQ);
+      }
+
+      saveQuestionsToStorage();
+      renderQuestions();
+      closeModal();
+      google.script.run
+        .withSuccessHandler(result => {
+          if (result && result.success) {
+            showToast('題目已同步到 Google Sheet');
+          } else {
+            showToast('Sheet 寫入失敗：' + (result?.message || '未知錯誤'));
+          }
+        })
+        .withFailureHandler(error => {
+          console.error('Sheet 寫入失敗：', error);
+          showToast('Sheet 寫入失敗，請查看 Console');
+        })
+        .saveQuestionToSheet(newQ);
+    }
+
+    function editQuestion(index) {
+      openModal(index);
+    }
+
+    function deleteQuestion(index) {
+      if (confirm(`確定要刪除「${questions[index].title}」這題嗎？`)) {
+        questions.splice(index, 1);
+        saveQuestionsToStorage();
+        renderQuestions();
+        google.script.run
+          .withSuccessHandler(result => {
+            if (result && result.status === 'success') {
+              showToast('刪除結果已同步到 Google Sheet');
+            } else {
+              showToast('Sheet 寫入失敗：' + (result?.message || '未知錯誤'));
+            }
+          })
+          .withFailureHandler(error => {
+            console.error('Sheet 寫入失敗：', error);
+            showToast('Sheet 寫入失敗，請查看 Console');
+          })
+          .saveQuestionsToSheet(questions);
+        showToast("已刪除病例題目");
+      }
+    }
+
+    function toggleQuestionEnabled(index) {
+      const question = questions[index];
+      if (!question) return;
+
+      // 沒有 enabled 欄位的舊題目視為啟用
+      const currentlyEnabled = question.enabled !== false;
+      question.enabled = !currentlyEnabled;
+
+      saveQuestionsToStorage();
+      renderQuestions();
+
+      google.script.run
+        .withSuccessHandler(result => {
+          if (result && result.status === 'success') {
+            showToast(question.enabled ? '題目已啟用' : '題目已停用');
+          } else {
+            showToast('Sheet 寫入失敗：' + (result?.message || '未知錯誤'));
+          }
+        })
+        .withFailureHandler(error => {
+          console.error('切換啟用狀態失敗：', error);
+          showToast('同步失敗，請查看 Console');
+        })
+        .saveQuestionsToSheet(questions);
+    }
+
+    function testDriveQuestion(index) {
+      const q = questions[index];
+      const modal = document.getElementById('test-modal');
+      const body = document.getElementById('test-modal-body');
+
+      body.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="badge-tag bg-cyan-950 text-cyan-300 border border-cyan-800">${q.category}</span>
+            <span class="badge-tag bg-slate-900 border border-slate-700 text-slate-400">${q.difficulty}</span>
+          </div>
+
+          <h3 class="font-bold text-slate-100 text-base leading-snug">${q.title}</h3>
+          <p class="text-xs text-slate-300 leading-relaxed bg-[#131e32] p-3 rounded-xl border border-[#1e2d4a]">${q.desc}</p>
+
+          <div class="space-y-2 pt-2">
+            <label class="text-xs font-bold text-slate-300 block">問題：該病患最可能的流體力學病灶為何？</label>
+            <div id="test-options-list" class="space-y-2">
+              ${q.options.map((opt, i) => `
+                <label class="flex items-center gap-3 bg-[#131e32] border border-slate-800 hover:border-cyan-500/50 p-3 rounded-xl cursor-pointer transition">
+                  <input type="radio" name="student-answer" value="${i}" class="accent-cyan-400">
+                  <span class="text-xs text-slate-200 flex-1">${opt}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <button onclick="submitStudentAnswer(${index})" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-xl shadow-lg transition">
+            提交臨床診斷答覆
+          </button>
+
+          <div id="student-rationale-box" class="hidden p-3.5 rounded-xl text-xs leading-relaxed border"></div>
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function submitStudentAnswer(index) {
+      const selected = document.querySelector('input[name="student-answer"]:checked');
+      if (!selected) { alert("請先選擇一個選項！"); return; }
+
+      const ansVal = parseInt(selected.value);
+      const q = questions[index];
+      const box = document.getElementById('student-rationale-box');
+
+      box.classList.remove('hidden');
+      if (ansVal === q.correctIndex) {
+        box.className = "p-3.5 rounded-xl text-xs leading-relaxed bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 block";
+        box.innerHTML = `✅ <b>答對了！臨床診斷正確。</b><br><br>${q.rationale}`;
+      } else {
+        box.className = "p-3.5 rounded-xl text-xs leading-relaxed bg-rose-950/60 border border-rose-500/40 text-rose-200 block";
+        box.innerHTML = `❌ <b>答錯了。正確解答為：(${String.fromCharCode(65 + q.correctIndex)}) ${q.options[q.correctIndex]}</b><br><br>${q.rationale}`;
+      }
+    }
+
+    function closeTestModal() {
+      document.getElementById('test-modal').classList.add('hidden');
+    }
+
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questions, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `CardioFlow_QuizBank_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("已匯出 JSON 題庫檔案");
+    }
+
+    function copyJSON() {
+      const text = JSON.stringify(questions, null, 2);
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast("題庫 JSON 已複製至剪貼簿");
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            questions = imported;
+            saveQuestionsToStorage();
+            renderQuestions();
+            google.script.run
+              .withSuccessHandler(result => {
+                if (result && result.status === 'success') {
+                  showToast('匯入題庫已同步到 Google Sheet');
+                } else {
+                  showToast('Sheet 寫入失敗：' + (result?.message || '未知錯誤'));
+                }
+              })
+              .withFailureHandler(error => {
+                console.error('Sheet 寫入失敗：', error);
+                showToast('Sheet 寫入失敗，請查看 Console');
+              })
+              .saveQuestionsToSheet(questions);
+            showToast(`已成功匯入 ${questions.length} 個病例題目`);
+          } else {
+            alert("匯入失敗：JSON 格式不符 (應為陣列列表)");
+          }
+        } catch(err) {
+          alert("匯入失敗：JSON 格式解析錯誤");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
